@@ -70,6 +70,34 @@ func (r *echoResolver) Echo(args struct{ Value *string }) *string {
 	return args.Value
 }
 
+type extendResolver1 struct{}
+
+func (r *extendResolver1) Hello() string {
+	return "Hello world!"
+}
+
+func (r *extendResolver1) Extended1() string {
+	return "Extended1"
+}
+
+func (r *extendResolver1) Extended2() string {
+	return "Extended2"
+}
+
+type extendResolver2 struct{}
+
+func (r *extendResolver2) Hello(ctx context.Context) (string, error) {
+	return "Hello world!", nil
+}
+
+func (r *extendResolver2) Extended1(ctx context.Context) (string, error) {
+	return "Extended1", nil
+}
+
+func (r *extendResolver2) Extended2(ctx context.Context) (string, error) {
+	return "Extended2", nil
+}
+
 var starwarsSchema = graphql.MustParseSchema(starwars.Schema, &starwars.Resolver{})
 
 func TestHelloWorld(t *testing.T) {
@@ -1933,6 +1961,78 @@ func TestComposedFragments(t *testing.T) {
 							}
 						]
 					}
+				}
+			`,
+		},
+	})
+}
+
+func TestExtend(t *testing.T) {
+	gqltesting.RunTests(t, []*gqltesting.Test{
+		{
+			Schema: graphql.MustParseSchema(`
+				schema {
+					query: Query
+				}
+
+				type Query {
+					hello: String!
+				}
+
+				extend type Query {
+					extended1: String! 
+				}
+
+				extend type Query {
+					extended2: String! 
+				}
+			`, &extendResolver1{}),
+			Query: `
+				{	
+					hello
+					extended1
+					extended2
+				}
+			`,
+			ExpectedResult: `
+				{
+					"extended1": "Extended1",
+					"extended2": "Extended2",
+					"hello": "Hello world!"
+				}
+			`,
+		},
+
+		{
+			Schema: graphql.MustParseSchema(`
+				schema {
+					query: Query
+				}
+
+				type Query {
+					hello: String!
+				}
+
+				extend type Query {
+					extended1: String! 
+				}
+
+				extend type Query {
+					extended2: String! 
+				}
+			`, &extendResolver2{}),
+			Query: `
+				{	
+					hello
+					extended1
+					extended2
+				}
+			`,
+			ExpectedResult: `
+				{
+					"extended1": "Extended1",
+					"extended2": "Extended2",
+					"hello": "Hello world!"
 				}
 			`,
 		},

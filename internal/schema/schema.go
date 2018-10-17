@@ -442,9 +442,50 @@ func parseSchema(s *Schema, l *common.Lexer) {
 			directive.Desc = desc
 			s.Directives[directive.Name] = directive
 
+		case "extend":
+			switch t := l.ConsumeIdent(); t {
+			case "type":
+				obj := parseObjectDef(l)
+				obj.Desc = desc
+				old := s.Types[obj.Name]
+				if old == nil {
+					l.SyntaxError(fmt.Sprintf(`extend type %q not found`, obj.Name))
+				}
+				origin, ok := old.(*Object)
+				if !ok {
+					l.SyntaxError(fmt.Sprintf(`extend type %q must be object, but found %q`, obj.Name, old.Kind()))
+				}
+				origin.Fields = append(origin.Fields, obj.Fields...)
+			case "interface":
+				iface := parseInterfaceDef(l)
+				iface.Desc = desc
+				old := s.Types[iface.Name]
+				if old == nil {
+					l.SyntaxError(fmt.Sprintf(`extend interface %q not found`, iface.Name))
+				}
+				origin, ok := old.(*Interface)
+				if !ok {
+					l.SyntaxError(fmt.Sprintf(`extend interface %q must be interface, but found %q`, iface.Name, old.Kind()))
+				}
+				origin.Fields = append(origin.Fields, iface.Fields...)
+			case "input":
+				input := parseInputDef(l)
+				input.Desc = desc
+				old := s.Types[input.Name]
+				if old == nil {
+					l.SyntaxError(fmt.Sprintf(`extend input %q not found`, input.Name))
+				}
+				origin, ok := old.(*InputObject)
+				if !ok {
+					l.SyntaxError(fmt.Sprintf(`extend input %q must be input, but found %q`, input.Name, old.Kind()))
+				}
+				origin.Values = append(origin.Values, input.Values...)
+			default:
+				l.SyntaxError(fmt.Sprintf(`unexpected %q, expecting "type, interface or input"`, t))
+			}
 		default:
 			// TODO: Add support for type extensions.
-			l.SyntaxError(fmt.Sprintf(`unexpected %q, expecting "schema", "type", "enum", "interface", "union", "input", "scalar" or "directive"`, x))
+			l.SyntaxError(fmt.Sprintf(`unexpected %q, expecting "schema", "type", "enum", "interface", "union", "input", "scalar", "directive" or "extend"`, x))
 		}
 	}
 }
