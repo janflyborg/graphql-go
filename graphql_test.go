@@ -106,7 +106,7 @@ func (r *extendInterfaceResolver1) Hello() hello {
 }
 
 func (r *extendInterfaceResolver1) TohelloT() helloT {
-	return
+	return helloT{}
 }
 
 type helloT struct {}
