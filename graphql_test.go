@@ -98,6 +98,27 @@ func (r *extendResolver2) Extended2(ctx context.Context) (string, error) {
 	return "Extended2", nil
 }
 
+type extendInterfaceResolver1 struct{}
+
+func (r *extendInterfaceResolver1) Hello() hello {
+	s := helloT{}
+	return &s
+}
+
+func (r *extendInterfaceResolver1) TohelloT() helloT {
+	return
+}
+
+type helloT struct {}
+
+func (* helloT) Hello() string {
+	return "Hello World!"
+}
+
+type hello interface {
+	Hello() string
+}
+
 var starwarsSchema = graphql.MustParseSchema(starwars.Schema, &starwars.Resolver{})
 
 func TestHelloWorld(t *testing.T) {
@@ -1967,7 +1988,7 @@ func TestComposedFragments(t *testing.T) {
 	})
 }
 
-func TestExtend(t *testing.T) {
+func TestExtendType(t *testing.T) {
 	gqltesting.RunTests(t, []*gqltesting.Test{
 		{
 			Schema: graphql.MustParseSchema(`
@@ -1998,6 +2019,75 @@ func TestExtend(t *testing.T) {
 				{
 					"extended1": "Extended1",
 					"extended2": "Extended2",
+					"hello": "Hello world!"
+				}
+			`,
+		},
+
+		{
+			Schema: graphql.MustParseSchema(`
+				schema {
+					query: Query
+				}
+
+				type Query {
+					hello: String!
+				}
+
+				extend type Query {
+					extended1: String! 
+				}
+
+				extend type Query {
+					extended2: String! 
+				}
+			`, &extendResolver2{}),
+			Query: `
+				{	
+					hello
+					extended1
+					extended2
+				}
+			`,
+			ExpectedResult: `
+				{
+					"extended1": "Extended1",
+					"extended2": "Extended2",
+					"hello": "Hello world!"
+				}
+			`,
+		},
+	})
+}
+
+func TestExtendInterface(t *testing.T) {
+	gqltesting.RunTests(t, []*gqltesting.Test{
+		{
+			Schema: graphql.MustParseSchema(`
+				schema {
+					query: Query
+				}
+
+				interface helloI {
+					hello: String!
+				}
+
+				type helloT implements helloI {
+					hello: String!
+				}
+
+				type Query {
+					hello: helloI
+				}
+
+			`, &extendInterfaceResolver1{}),
+			Query: `
+				{	
+					hello
+				}
+			`,
+			ExpectedResult: `
+				{
 					"hello": "Hello world!"
 				}
 			`,
